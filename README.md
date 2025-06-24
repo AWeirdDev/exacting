@@ -5,7 +5,7 @@
 
 Yes, **type hints are always on.** No hidden stuff.
 
-## Example
+## Examples
 ```python
 from exacting import exact
 
@@ -29,6 +29,17 @@ Person(name="John", age=1.23)
 # During validation of dataclass Person, a type error occurred: -
 # (isinstance) Expected <class 'int'>, got: <class 'float'>
 # ...at attribute 'age'
+```
+
+Also, you can type anything! (Almost.) Cool.
+
+```python
+@exact
+class Stuff:
+    banana: str | int | bool
+    apple: Optional[str]
+
+# ...they all work!
 ```
 
 ***
