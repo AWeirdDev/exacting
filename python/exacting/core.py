@@ -1,10 +1,7 @@
-import dataclasses
 from typing import TYPE_CHECKING, Callable, Type, TypeVar
 
+import dataclasses
 from dataclasses import asdict, dataclass, is_dataclass
-
-if TYPE_CHECKING:
-    from dataclasses import _DataclassT
 
 from .dc import get_etypes_for_dc
 
@@ -71,11 +68,14 @@ def _patch():
             setattr(x, "__init__", init)
             return x
 
-    setattr(dataclasses, "dataclass", new)
+    return new
 
 
-_patch()
-exact = dataclasses.dataclass
+# sneaky trick
+if TYPE_CHECKING:
+    exact = dataclasses.dataclass
+else:
+    exact = _patch()
 
 
 class Exact:
