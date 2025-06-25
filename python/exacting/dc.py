@@ -7,6 +7,7 @@ from typing import Any, Dict, Type, Union, get_origin, get_type_hints
 
 from .types import Dataclass
 from .etypes import (
+    AnnotatedType,
     BaseType,
     DataclassType,
     DictType,
@@ -50,6 +51,10 @@ def get_etype_from_type(typ: Type) -> BaseType:
     elif origin is dict:
         return DictType(
             get_etype_from_type(typ.__args__[0]), get_etype_from_type(typ.__args__[1])
+        )
+    elif origin is typing.Annotated:
+        return AnnotatedType(
+            get_etype_from_type(typ.__args__[0]), list(typ.__metadata__)
         )
 
     raise TypeError(f"Unknown type: {typ!r}")

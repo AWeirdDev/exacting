@@ -292,7 +292,9 @@ class DataclassType(BaseType[Dataclass]):
 
     def validate(self, x: Any) -> TypeResult[Any]:
         if not is_dataclass(x):
-            raise TypeError(f"Expected dataclass instance, got: {x!r}")
+            return TypeResult(
+                errors=[f"Expected dataclass instance ({self.name!r}), got: {x!r}"]
+            )
 
         for name, etype in self.target.items():
             item = getattr(x, name)
@@ -314,3 +316,15 @@ class DataclassType(BaseType[Dataclass]):
 
     def __repr__(self) -> str:
         return self.name
+
+
+class AnnotatedType(BaseType[Any]):
+    target: BaseType
+    items: typing.List[Any]
+
+    def __init__(self, target: BaseType, items: typing.List[Any]):
+        self.target = target
+        self.items = items
+
+    def validate(self, x: Any) -> TypeResult[Any]:
+        return self.target.validate(x)

@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Callable, List, Type, TypeVar
+from typing_extensions import dataclass_transform
 
 import dataclasses
 from dataclasses import asdict, dataclass, is_dataclass
@@ -28,6 +29,7 @@ def get_exact_error_message(errors: List[str]) -> str:
 
 def get_exact_init(dc: Type) -> Callable:
     etypes = get_etypes_for_dc(dc)
+    dc.__exact_types__ = etypes
 
     def init(self, *args, **kwargs):
         covered = len(args) + len(kwargs)
@@ -115,16 +117,17 @@ else:
     exact = _patch()
 
 
-class Exact:
-    """This `Exact` model appends additional functionalities to the current dataclass.
+@dataclass_transform()
+class _ModelKwOnly: ...
 
+
+class Exact(_ModelKwOnly):
+    """
     All the APIs are prefixed with `exact_` to add clarity.
     """
 
-    def __init__(self):
-        raise NotImplementedError(
-            "The class `Exact` should not be initialized directly, but inherited."
-        )
+    def __init_subclass__(cls) -> None:
+        setattr(cls, "__init__", get_exact_init(dataclass(cls)))
 
     def exact_as_dict(self):
         """Creates a dictionary representation of this dataclass instance.

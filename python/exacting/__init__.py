@@ -18,6 +18,7 @@ from .etypes import (
     DataclassType,
     NoneType,
     AnyType,
+    AnnotatedType,
 )
 from .dc import get_etypes_for_dc, get_etype_from_type
 
@@ -41,6 +42,7 @@ __all__ = [
     "DictType",
     "UnionType",
     "DataclassType",
+    "AnnotatedType",
     "NoneType",
     "AnyType",
     "get_etypes_for_dc",
