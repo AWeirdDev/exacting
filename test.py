@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 from exacting import Exact, exact
 
@@ -12,6 +13,11 @@ class Experience(Exact):
 class Person(Exact):
     name: str
     age: int
+    experiences: list[Experience]
 
 
-Person(name="John", age=123).exact_as_dict()
+Person(
+    name="John",
+    age=123,
+    experiences=[Experience(title=b"WHEN I POOPPED OFF", years=123)],
+)

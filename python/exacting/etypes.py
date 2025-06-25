@@ -7,6 +7,7 @@ The `expect()` function is also available if you'd like to make a custom type.
 """
 
 from dataclasses import is_dataclass
+
 import typing
 from typing import Any, Generic, Type, TypeVar
 
@@ -16,34 +17,51 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
-def expect(t: Type[T], x: Any) -> T:
+class TypeResult(Generic[T]):
+    __slots__ = ("ok", "errors")
+
+    ok: typing.Optional[T]
+    errors: typing.List[
+        typing.Union[str, typing.Literal["indent"], typing.Literal["unindent"]]
+    ]
+
+    def __init__(
+        self,
+        *,
+        ok: typing.Optional[T] = None,
+        errors: typing.Optional[
+            typing.List[
+                typing.Union[str, typing.Literal["indent"], typing.Literal["unindent"]]
+            ]
+        ] = None,
+    ):
+        self.ok = ok
+        self.errors = errors or []
+
+    def has_error(self):
+        return bool(self.errors)
+
+
+def unwrap(o: typing.Optional[T]) -> T:
+    return o  # type: ignore
+
+
+def expect(t: Type[T], x: Any) -> TypeResult[T]:
     """Expect an instance of a type.
 
     Args:
         t: The type object.
         x: Any value to test.
-
-    Example:
-
-    ```python
-    try:
-        expect(str, some_value)
-    except TypeError as err:
-        print(err.args[0])
-    ```
-
-    Raises:
-        TypeError: mismatching types.
     """
     if isinstance(x, t):
-        return x
+        return TypeResult(ok=x)
     else:
-        raise TypeError(f"\n(isinstance) Expected {t}, got: {type(x)}")
+        return TypeResult(errors=[f"(isinstance) Expected {t}, got: {type(x)}"])
 
 
 class BaseType(Generic[T]):
     def __init__(self): ...
-    def validate(self, x: Any) -> T:
+    def validate(self, x: Any) -> TypeResult[T]:
         """Validates the type."""
         raise NotImplementedError
 
@@ -52,7 +70,7 @@ class BaseType(Generic[T]):
 
 
 class StrType(BaseType[str]):
-    def validate(self, x: Any) -> str:
+    def validate(self, x: Any) -> TypeResult[str]:
         return expect(str, x)
 
     def __repr__(self) -> str:
@@ -63,7 +81,7 @@ estr = StrType()
 
 
 class IntType(BaseType[int]):
-    def validate(self, x: Any) -> int:
+    def validate(self, x: Any) -> TypeResult[int]:
         return expect(int, x)
 
     def __repr__(self) -> str:
@@ -74,7 +92,7 @@ eint = IntType()
 
 
 class BoolType(BaseType[bool]):
-    def validate(self, x: Any) -> bool:
+    def validate(self, x: Any) -> TypeResult[bool]:
         return expect(bool, x)
 
     def __repr__(self) -> str:
@@ -85,7 +103,7 @@ ebool = BoolType()
 
 
 class FloatType(BaseType[float]):
-    def validate(self, x: Any) -> float:
+    def validate(self, x: Any) -> TypeResult[float]:
         return expect(float, x)
 
     def __repr__(self) -> str:
@@ -96,7 +114,7 @@ efloat = FloatType()
 
 
 class BytesType(BaseType[bytes]):
-    def validate(self, x: Any) -> bytes:
+    def validate(self, x: Any) -> TypeResult[bytes]:
         return expect(bytes, x)
 
     def __repr__(self) -> str:
@@ -112,29 +130,37 @@ class ListType(BaseType[typing.List[T]]):
     def __init__(self, target: BaseType[T]):
         self.target = target
 
-    def validate(self, x: Any) -> typing.List[T]:
-        x = expect(list, x)
+    def validate(self, x: Any) -> TypeResult[typing.List[T]]:
+        res = expect(list, x)
+        if res.has_error():
+            return res
 
-        for idx, item in enumerate(x):
-            try:
-                x[idx] = self.target.validate(item)
-            except TypeError as err:
-                message = err.args[0]
-                raise TypeError(
-                    f"\nDuring validation of list[{self.target!r}], a type error occurred: - {message}\n"
-                    f"...at item index {idx}"
+        array = unwrap(res.ok)
+
+        for idx, item in enumerate(array):
+            result = self.target.validate(item)
+            if result.has_error():
+                return TypeResult(
+                    errors=[
+                        f"During validation of list[{self.target!r}] at item index {idx}, a type error occurred:",
+                        "indent",
+                        *result.errors,
+                        "unindent",
+                    ]
                 )
 
-        return x
+            array[idx] = unwrap(result.ok)
+
+        return TypeResult(ok=array)
 
     def __repr__(self) -> str:
         return f"list[{self.target!r}]"
 
 
 class NoneType(BaseType[None]):
-    def validate(self, x: Any) -> None:
+    def validate(self, x: Any) -> TypeResult[None]:
         if x is not None:
-            raise TypeError(f"\nExpected None, got: {type(x)}")
+            return TypeResult(errors=[f"Expected None, got: {type(x)}"])
         return x
 
     def __repr__(self) -> str:
@@ -146,7 +172,7 @@ enone = NoneType()
 
 class AnyType(BaseType[Any]):
     def validate(self, x: Any) -> Any:
-        return x
+        return TypeResult(ok=x)
 
 
 eany = AnyType()
@@ -160,30 +186,43 @@ class DictType(BaseType[typing.Dict[K, T]]):
         self.k_target = k_target
         self.v_target = v_target
 
-    def validate(self, x: Any) -> typing.Dict[K, T]:
-        x = expect(dict, x)
-        for key, value in x.items():
-            try:
-                k = self.k_target.validate(key)
-            except TypeError as err:
-                message = err.args[0]
-                raise TypeError(
-                    f"\nDuring validation of list[{self.k_target!r}], a type error occurred: - {message}\n"
-                    f"...at item key {key!r}"
+    def validate(self, x: Any) -> TypeResult[typing.Dict[K, T]]:
+        res = expect(dict, x)
+        if res.has_error():
+            return res
+
+        dictionary = unwrap(res.ok)
+
+        for key, value in dictionary.items():
+            result = self.k_target.validate(key)
+            if result.has_error():
+                return TypeResult(
+                    errors=[
+                        f"During validation of dict[{self.k_target!r}] at key {key!r}, a type error occurred:",
+                        "indent",
+                        *result.errors,
+                        "unindent",
+                    ]
                 )
 
-            try:
-                v = self.v_target.validate(value)
-            except TypeError as err:
-                message = err.args[0]
-                raise TypeError(
-                    f"\nDuring validation of list[{self.v_target!r}], a type error occurred: - {message}\n"
-                    f"...at item key {key!r}"
+            k = unwrap(result.ok)
+
+            result2 = self.v_target.validate(value)
+            if result2.has_error():
+                return TypeResult(
+                    errors=[
+                        f"During validation of dict[{self.v_target!r}] at the *value* paired with the key {key!r}, a type error occurred:",
+                        "indent",
+                        *result2.errors,
+                        "unindent",
+                    ]
                 )
 
-            x[k] = v
+            v = unwrap(result2.ok)
 
-        return x
+            dictionary[k] = v
+
+        return TypeResult(ok=dictionary)
 
     def __repr__(self) -> str:
         return f"dict[{self.k_target!r}, {self.v_target!r}]"
@@ -197,20 +236,30 @@ class UnionType(BaseType[typing.Union[K, T]]):
         self.a = a
         self.b = b
 
-    def validate(self, x: Any) -> typing.Union[K, T]:
-        try:
-            return self.a.validate(x)
-        except TypeError as err:
-            message = err.args[0]
+    def validate(self, x: Any) -> TypeResult[typing.Union[K, T]]:
+        result = self.a.validate(x)
+        if result.has_error():
+            messages = result.errors
+        else:
+            return TypeResult(ok=unwrap(result.ok))
 
-        try:
-            return self.b.validate(x)
-        except TypeError as err:
-            raise TypeError(
-                f"\nExpected either {self.a!r} or {self.b!r}.\n"
-                f"• Attempted {self.a!r}, got: - {message}\n"
-                f"• Attempted {self.b!r}, got: - {err.args[0]}"
+        result2 = self.b.validate(x)
+        if result2.has_error():
+            return TypeResult(
+                errors=[
+                    f"Expected either type {self.a!r} or type {self.b!r}.\n",
+                    f"• Attempted {self.a!r}, got:",
+                    "indent",
+                    *messages,
+                    "unindent",
+                    f"• Attempted {self.b!r}, got:",
+                    "indent",
+                    *result2.errors,
+                    "unindent",
+                ],
             )
+        else:
+            return TypeResult(ok=unwrap(result2.ok))
 
     def __repr__(self) -> str:
         return f"{self.a!r} | {self.b!r}"
@@ -241,21 +290,27 @@ class DataclassType(BaseType[Dataclass]):
         self.name = name
         self.target = target
 
-    def validate(self, x: Any) -> Any:
+    def validate(self, x: Any) -> TypeResult[Any]:
         if not is_dataclass(x):
             raise TypeError(f"Expected dataclass instance, got: {x!r}")
 
         for name, etype in self.target.items():
             item = getattr(x, name)
-            try:
-                setattr(x, name, etype.validate(item))
-            except TypeError as err:
-                raise TypeError(
-                    f"\nDuring validation of dataclass {self.name}, a type error occurred: - {err.args[0]}\n"
-                    f"...at attribute {name!r}"
+            res = etype.validate(item)
+
+            if res.has_error():
+                return TypeResult(
+                    errors=[
+                        f"During validation of dataclass {self.name!r} at attribute {name!r}, a type error occurred:",
+                        "indent",
+                        *res.errors,
+                        "unindent",
+                    ]
                 )
 
-        return x
+            setattr(x, name, res.ok)
+
+        return TypeResult(ok=x)
 
     def __repr__(self) -> str:
         return self.name
