@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Callable, List, Type, TypeVar
-from typing_extensions import dataclass_transform
+from typing_extensions import Self, dataclass_transform
 
 import dataclasses
 from dataclasses import asdict, dataclass, is_dataclass
 
 from .dc import get_etypes_for_dc
+from .exacting import json as ejson  # type: ignore
 
 T = TypeVar("T", bound=Type)
 
@@ -36,7 +37,7 @@ def get_exact_init(dc: Type) -> Callable:
 
         if covered != len(etypes):
             raise ValueError(
-                f"(dataclass {dc.__name__!r}) Expected to cover {len(etypes)} parameters, but got {covered}"
+                f"(dataclass {dc.__name__!r}) Expected to cover {len(etypes)} parameter(s), but got {covered}"
             )
 
         if args:
@@ -130,10 +131,55 @@ class Exact(_ModelKwOnly):
         setattr(cls, "__init__", get_exact_init(dataclass(cls)))
 
     def exact_as_dict(self):
-        """Creates a dictionary representation of this dataclass instance.
+        """(exacting) Creates a dictionary representation of this dataclass instance.
 
         Raises:
             AssertionError: Expected a dataclass
         """
         assert is_dataclass(self)
         return asdict(self)
+
+    @classmethod
+    def exact_from_json(cls, raw: str, *, strict: bool = True) -> Self:
+        """(exacting) Initialize this dataclass model from JSON.
+
+        When `strict` is set to `False`, exacting uses JSON5, allowing comments,
+        trailing commas, object keys without quotes, single quoted strings and more.
+
+        Example:
+
+        ```python
+        class Person(Exact):
+            name: str
+            age: int
+
+        # strict mode (default)
+        Person.exact_from_json(\"\"\"
+        {
+            "name": "Harry",
+            "age": 23
+        }
+        \"\"\")
+
+        # lenient :)
+        Person.exact_from_json(\"\"\"
+        {
+            /*
+                hell yeah!
+            */
+            name: "Walter",
+            age: 23, // <- trailing commas? yeah!
+        }
+        \"\"\", strict=False)
+        ```
+
+        Args:
+            raw (str): The raw JSON.
+            strict (bool): Whether to use strict mode.
+        """
+        if strict:
+            data = ejson.json_to_py(raw)
+        else:
+            data = ejson.jsonc_to_py(raw)
+
+        return cls(**data)
