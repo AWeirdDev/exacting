@@ -56,7 +56,7 @@ def expect(t: Type[T], x: Any) -> TypeResult[T]:
     if isinstance(x, t):
         return TypeResult(ok=x)
     else:
-        return TypeResult(errors=[f"(isinstance) Expected {t}, got: {type(x)}"])
+        return TypeResult(errors=[f"(isinstance) Expected {t}, got: {type(x)!r}"])
 
 
 class BaseType(Generic[T]):
@@ -320,11 +320,28 @@ class DataclassType(BaseType[Dataclass]):
 
 class AnnotatedType(BaseType[Any]):
     target: BaseType
-    items: typing.List[Any]
+    metadata: typing.List[Any]
 
     def __init__(self, target: BaseType, items: typing.List[Any]):
         self.target = target
-        self.items = items
+        self.metadata = items
 
     def validate(self, x: Any) -> TypeResult[Any]:
         return self.target.validate(x)
+
+
+class LiteralType(BaseType):
+    targets: typing.List[Any]
+
+    def __init__(self, targets: typing.List[Any]):
+        self.targets = targets
+
+    def validate(self, x: Any) -> TypeResult:
+        for item in self.targets:
+            if x == item:
+                return TypeResult(ok=x)
+
+        return TypeResult(errors=[f"Cannot find item matching {self!r}"])
+
+    def __repr__(self) -> str:
+        return f"literal[{', '.join(repr(i) for i in self.targets)}]"

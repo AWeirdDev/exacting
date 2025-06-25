@@ -12,6 +12,7 @@ from .etypes import (
     DataclassType,
     DictType,
     ListType,
+    LiteralType,
     eany,
     enone,
     estr,
@@ -56,6 +57,8 @@ def get_etype_from_type(typ: Type) -> BaseType:
         return AnnotatedType(
             get_etype_from_type(typ.__args__[0]), list(typ.__metadata__)
         )
+    elif origin is typing.Literal:
+        return LiteralType(list(typ.__args__))
 
     raise TypeError(f"Unknown type: {typ!r}")
 

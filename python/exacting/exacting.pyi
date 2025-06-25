@@ -19,3 +19,24 @@ def jsonc_to_py(json: str) -> Any:
     Args:
         json (str): The JSONC data.
     """
+
+
+class Regex:
+    def __init__(self, m: str): ...
+    def validate(self, input: str) -> bool:
+        """Checks if `input` matches the regex.
+
+        Args:
+            input (str): The input.
+
+        Raises:
+            RuntimeError: Rust-side error.
+        """
+
+
+def py_to_bytes(data: Any) -> bytes:
+    """Convert Python data to bytes."""
+
+
+def bytes_to_py(data: bytes) -> Any:
+    """Convert bytes to Python data."""

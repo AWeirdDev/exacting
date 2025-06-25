@@ -1,11 +1,12 @@
-from typing import TYPE_CHECKING, Callable, List, Type, TypeVar
+from typing import Callable, List, Type, TypeVar
 from typing_extensions import Self, dataclass_transform
 
 import dataclasses
 from dataclasses import asdict, dataclass, is_dataclass
 
 from .dc import get_etypes_for_dc
-from .exacting import json as ejson  # type: ignore
+from .exacting import bytes_to_py, json_to_py, jsonc_to_py, py_to_bytes
+from .types import NOTHING
 
 T = TypeVar("T", bound=Type)
 
@@ -32,93 +33,58 @@ def get_exact_init(dc: Type) -> Callable:
     etypes = get_etypes_for_dc(dc)
     dc.__exact_types__ = etypes
 
-    def init(self, *args, **kwargs):
-        covered = len(args) + len(kwargs)
+    def init(self, **kwargs):
+        for key, value in etypes.items():
+            provided_value = kwargs.get(key, NOTHING)
+            if provided_value is NOTHING:
+                field = dc.__dataclass_fields__[key]
+                if field.default is not dataclasses.MISSING:
+                    provided_value = field.default
+                elif field.default_factory is not dataclasses.MISSING:
+                    provided_value = field.default_factory()
+                else:
+                    raise ValueError(
+                        f"Error while validating dataclass {dc.__name__!r} at attribute {key!r}:\n"
+                        "Field has no value provided."
+                    )
 
-        if covered != len(etypes):
-            raise ValueError(
-                f"(dataclass {dc.__name__!r}) Expected to cover {len(etypes)} parameter(s), but got {covered}"
+            res = value.validate(provided_value)
+            if res.has_error():
+                raise TypeError(
+                    get_exact_error_message(
+                        [
+                            f"Error while validating dataclass {dc.__name__!r} at attribute {key!r}:",
+                            *res.errors,
+                        ]
+                    )
+                )
+
+            target = res.ok
+            validators = dc.__dataclass_fields__[key].metadata.get(
+                "exacting_validators"
             )
-
-        if args:
-            keys_map = list(etypes)  # keys
-
-            for idx, value in enumerate(args):
-                k = keys_map[idx]
-                res = etypes[keys_map[idx]].validate(value)
-                if res.has_error():
-                    raise TypeError(
-                        get_exact_error_message(
-                            [
-                                f"During validation of dataclass {dc.__name__!r} at attribute {k!r}, a type error occurred:",
-                                *res.errors,
-                            ]
+            if validators is not None:
+                for validator in validators:
+                    res_t = validator.validate(target)
+                    if res_t.has_error():
+                        raise TypeError(
+                            get_exact_error_message(
+                                [
+                                    f"Error while validating dataclass {dc.__name__!r} at attribute {key!r} (field validator):",
+                                    *res_t.errors,
+                                ]
+                            )
                         )
-                    )
-                setattr(self, k, res.ok)
+                    target = res_t.ok
 
-            for key, value in kwargs.items():
-                res = etypes[key].validate(value)
-                if res.has_error():
-                    raise TypeError(
-                        get_exact_error_message(
-                            [
-                                f"During validation of dataclass {dc.__name__!r} at attribute {key!r}, a type error occurred:",
-                                *res.errors,
-                            ]
-                        )
-                    )
-                setattr(self, key, res.ok)
-
-        else:
-            for key, value in kwargs.items():
-                res = etypes[key].validate(value)
-                if res.has_error():
-                    raise TypeError(
-                        get_exact_error_message(
-                            [
-                                f"During validation of dataclass {dc.__name__!r} at attribute {key!r}, a type error occurred:",
-                                *res.errors,
-                            ]
-                        )
-                    )
-                setattr(self, key, res.ok)
+            setattr(self, key, target)
 
         return None  # required!
 
     return init
 
 
-def _patch():
-    original = dataclasses.dataclass
-
-    def new(item=None, **kwargs):
-        if item is None:
-
-            def wrapper(t):
-                x = original(t)
-                init = get_exact_init(x)
-                setattr(x, "__init__", init)
-                return x
-
-            return wrapper
-        else:
-            x = dataclass(item)
-            init = get_exact_init(x)
-            setattr(x, "__init__", init)
-            return x
-
-    return new
-
-
-# sneaky trick
-if TYPE_CHECKING:
-    exact = dataclasses.dataclass
-else:
-    exact = _patch()
-
-
-@dataclass_transform()
+@dataclass_transform(kw_only_default=True)
 class _ModelKwOnly: ...
 
 
@@ -128,7 +94,8 @@ class Exact(_ModelKwOnly):
     """
 
     def __init_subclass__(cls) -> None:
-        setattr(cls, "__init__", get_exact_init(dataclass(cls)))
+        init = get_exact_init(dataclass(cls))
+        setattr(cls, "__init__", init)
 
     def exact_as_dict(self):
         """(exacting) Creates a dictionary representation of this dataclass instance.
@@ -138,6 +105,10 @@ class Exact(_ModelKwOnly):
         """
         assert is_dataclass(self)
         return asdict(self)
+
+    def exact_as_bytes(self) -> bytes:
+        """(exacting) Convert this instance of dataclass model into bytes."""
+        return py_to_bytes(self.exact_as_dict())
 
     @classmethod
     def exact_from_json(cls, raw: str, *, strict: bool = True) -> Self:
@@ -178,8 +149,13 @@ class Exact(_ModelKwOnly):
             strict (bool): Whether to use strict mode.
         """
         if strict:
-            data = ejson.json_to_py(raw)
+            data = json_to_py(raw)
         else:
-            data = ejson.jsonc_to_py(raw)
+            data = jsonc_to_py(raw)
 
+        return cls(**data)
+
+    @classmethod
+    def exact_from_bytes(cls, raw: bytes) -> Self:
+        data = bytes_to_py(raw)
         return cls(**data)

@@ -21,8 +21,8 @@ from .etypes import (
     AnnotatedType,
 )
 from .dc import get_etypes_for_dc, get_etype_from_type
-
-from .core import Exact, exact
+from .core import Exact
+from .fields import field
 
 __all__ = [
     "expect",
@@ -48,5 +48,5 @@ __all__ = [
     "get_etypes_for_dc",
     "get_etype_from_type",
     "Exact",
-    "exact",
+    "field",
 ]
