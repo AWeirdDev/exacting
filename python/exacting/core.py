@@ -1,4 +1,4 @@
-from typing import Callable, List, Type, TypeVar
+from typing import Any, Callable, Dict, List, Type, TypeVar
 from typing_extensions import Self, dataclass_transform
 
 import dataclasses
@@ -84,6 +84,26 @@ def get_exact_init(dc: Type) -> Callable:
     return init
 
 
+def get_nonalias(cls: Type["Exact"], data: dict) -> dict:
+    for field in cls.__dataclass_fields__.values():
+        alias = field.metadata.get("exacting_alias")
+        if alias is not None:
+            item = data.pop(alias)
+            data[field.name] = item
+
+    return data
+
+
+def transform_alias(cls: Type["Exact"], data: dict) -> dict:
+    for field in cls.__dataclass_fields__.values():
+        alias = field.metadata.get("exacting_alias")
+        if alias is not None:
+            item = data.pop(field.name)
+            data[alias] = item
+
+    return data
+
+
 @dataclass_transform(kw_only_default=True)
 class _ModelKwOnly: ...
 
@@ -97,14 +117,18 @@ class Exact(_ModelKwOnly):
         init = get_exact_init(dataclass(cls))
         setattr(cls, "__init__", init)
 
-    def exact_as_dict(self):
+    def exact_as_dict(self) -> Dict[str, Any]:
         """(exacting) Creates a dictionary representation of this dataclass instance.
+
+        Returns:
+            dict[str, Any]
 
         Raises:
             AssertionError: Expected a dataclass
         """
         assert is_dataclass(self)
-        return asdict(self)
+        data = asdict(self)
+        return transform_alias(self.__class__, data)
 
     def exact_as_bytes(self) -> bytes:
         """(exacting) Convert this instance of dataclass model into bytes."""
@@ -153,9 +177,9 @@ class Exact(_ModelKwOnly):
         else:
             data = jsonc_to_py(raw)
 
-        return cls(**data)
+        return cls(**get_nonalias(cls, data))
 
     @classmethod
     def exact_from_bytes(cls, raw: bytes) -> Self:
         data = bytes_to_py(raw)
-        return cls(**data)
+        return cls(**get_nonalias(cls, data))

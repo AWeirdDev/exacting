@@ -2,7 +2,7 @@ from typing import Any, Callable, Optional, TypeVar
 from dataclasses import field as dataclass_field
 
 from .exacting import Regex
-from .etypes import BaseType, TypeResult, expect
+from .etypes import BaseType, TypeResult
 
 
 class RegexType(BaseType[str]):
@@ -32,6 +32,7 @@ def field(
     default_factory: Optional[Callable[[], T]] = None,
     hash: Optional[bool] = None,
     regex: Optional[str] = None,
+    alias: Optional[str] = None,
 ) -> Any:
     """Creates a field.
 
@@ -41,12 +42,13 @@ def field(
             Cannot be set at the same time with `default`.
         hash (bool, optional): Hashable?
         regex (str, optional): Check regex for `str`, if the current field is typed to as a `str`.
+        alias (str, optional): Alias for serializing/deserializing, but not used in Python.
     """
     validators = []
     if regex is not None:
         validators.append(RegexType(regex))
 
-    metadata = {"exacting_validators": validators}
+    metadata = {"exacting_validators": validators, "exacting_alias": alias}
 
     if default is not None and default_factory is None:
         return dataclass_field(default=default, hash=hash, metadata=metadata)
