@@ -1,12 +1,18 @@
-from typing import Literal
-from exacting import Exact, field
+from exacting import Exact
 
 
-class Person(Exact):
-    name: str | int = field(regex="^[A-Za-z]+$")
-    stuff: Literal["a", "b"] = field(default="b")
+class Woah(Exact):
+    bruh: bool
 
 
-person = Person(name=123)
-d = person.exact_as_bytes()
-print(Person.exact_from_bytes(d))
+class Place(Exact):
+    name: str
+    woah: Woah
+
+
+place = Place(name="Freddy Fazbear's Pizza", woah=Woah(bruh=True))
+archive = place.exact_as_json()
+print(archive)  # b"\x00\x00\x00\x00name\xff..."
+
+data = Place.exact_from_json(archive)
+print(data)  # Place(name="Freddy Fazbear's Pizza")

@@ -10,6 +10,7 @@ from dataclasses import is_dataclass
 
 import typing
 from typing import Any, Generic, Type, TypeVar
+from weakref import ReferenceType
 
 from .types import Dataclass
 
@@ -283,17 +284,24 @@ def union(*items: BaseType) -> BaseType:
 
 
 class DataclassType(BaseType[Dataclass]):
-    name: str
+    item: "ReferenceType[Type[Dataclass]]"
     target: typing.Dict[str, BaseType]
 
-    def __init__(self, name: str, target: typing.Dict[str, BaseType]):
-        self.name = name
+    def __init__(self, item: ReferenceType, target: typing.Dict[str, BaseType]):
+        self.item = item
         self.target = target
 
     def validate(self, x: Any) -> TypeResult[Any]:
+        item = self.item()
+        if item is None:
+            return TypeResult(
+                errors=[
+                    "Lost weakref over self.item (internal, etypes.py, DataclassType, validate())"
+                ]
+            )
         if not is_dataclass(x):
             return TypeResult(
-                errors=[f"Expected dataclass instance ({self.name!r}), got: {x!r}"]
+                errors=[f"Expected dataclass instance ({item!r}), got: {x!r}"]
             )
 
         for name, etype in self.target.items():
@@ -303,7 +311,7 @@ class DataclassType(BaseType[Dataclass]):
             if res.has_error():
                 return TypeResult(
                     errors=[
-                        f"During validation of dataclass {self.name!r} at attribute {name!r}, a type error occurred:",
+                        f"During validation of dataclass {item!r} at attribute {name!r}, a type error occurred:",
                         "indent",
                         *res.errors,
                         "unindent",
@@ -315,7 +323,7 @@ class DataclassType(BaseType[Dataclass]):
         return TypeResult(ok=x)
 
     def __repr__(self) -> str:
-        return self.name
+        return repr(self.item() or "_LostRefDataclass")
 
 
 class AnnotatedType(BaseType[Any]):

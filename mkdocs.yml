@@ -1,9 +1,18 @@
 site_name: Exacting
-site_url: https://github.com/AWeirdDev/exacting
+site_url: https://aweirddev.github.io/exacting
 repo_url: https://github.com/AWeirdDev/exacting
+nav:
+  - Home:
+    - index.md
+    - fields.md
+    - dumping.md
+  - Type reference:
+    - type-reference/native.md
+    - type-reference/union.md
+    - type-reference/any.md
+    - type-reference/literal.md
+    - type-reference/annotated.md
 theme:
-  palette:
-    scheme: slate
   name: material
   icon:
     logo: material/filter
@@ -13,10 +22,12 @@ theme:
     heading: Inter
   palette: 
     - scheme: default
+      primary: black
       toggle:
-        icon: material/brightness-7 
+        icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
+      primary: black
       media: "(prefers-color-scheme: dark)"
       toggle:
         icon: material/brightness-4
@@ -24,6 +35,8 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
+    - navigation.tabs
+    - navigation.tabs.sticky
 extra:
   generator: false
   social:
@@ -38,3 +51,7 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details

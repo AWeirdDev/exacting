@@ -1,3 +1,4 @@
+import json
 from typing import Any, Callable, Dict, List, Type, TypeVar
 from typing_extensions import Self, dataclass_transform
 
@@ -7,6 +8,7 @@ from dataclasses import asdict, dataclass, is_dataclass
 from .dc import get_etypes_for_dc
 from .exacting import bytes_to_py, json_to_py, jsonc_to_py, py_to_bytes
 from .types import NOTHING
+from .etypes import DataclassType
 
 T = TypeVar("T", bound=Type)
 
@@ -31,7 +33,7 @@ def get_exact_error_message(errors: List[str]) -> str:
 
 def get_exact_init(dc: Type) -> Callable:
     etypes = get_etypes_for_dc(dc)
-    dc.__exact_types__ = etypes
+    setattr(dc, "__exact_types__", etypes)
 
     def init(self, **kwargs):
         for key, value in etypes.items():
@@ -84,12 +86,23 @@ def get_exact_init(dc: Type) -> Callable:
     return init
 
 
-def get_nonalias(cls: Type["Exact"], data: dict) -> dict:
+def get_nonalias_and_dict(cls: Type["Exact"], data: dict) -> dict:
+    types = getattr(cls, "__exact_types__")
+
     for field in cls.__dataclass_fields__.values():
         alias = field.metadata.get("exacting_alias")
         if alias is not None:
             item = data.pop(alias)
             data[field.name] = item
+
+        etype = types[field.name]
+        if isinstance(etype, DataclassType):
+            dc = etype.item()
+            if not dc:
+                raise RuntimeError(
+                    "Lost weakref over dataclass (internal, core.py, get_nonalias_and_dict())"
+                )
+            data[field.name] = dc(**data[field.name])
 
     return data
 
@@ -129,6 +142,17 @@ class Exact(_ModelKwOnly):
         assert is_dataclass(self)
         data = asdict(self)
         return transform_alias(self.__class__, data)
+
+    def exact_as_json(self) -> str:
+        """(exacting) Creates a JSON representation of this dataclass instance.
+
+        Returns:
+            str
+
+        Raises:
+            AssertionError: Expected a dataclass
+        """
+        return json.dumps(self.exact_as_dict())
 
     def exact_as_bytes(self) -> bytes:
         """(exacting) Convert this instance of dataclass model into bytes."""
@@ -177,9 +201,9 @@ class Exact(_ModelKwOnly):
         else:
             data = jsonc_to_py(raw)
 
-        return cls(**get_nonalias(cls, data))
+        return cls(**get_nonalias_and_dict(cls, data))
 
     @classmethod
     def exact_from_bytes(cls, raw: bytes) -> Self:
         data = bytes_to_py(raw)
-        return cls(**get_nonalias(cls, data))
+        return cls(**get_nonalias_and_dict(cls, data))

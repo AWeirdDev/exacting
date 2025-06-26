@@ -5,6 +5,8 @@ import types as std_types
 import typing
 from typing import Any, Dict, Type, Union, get_origin, get_type_hints
 
+from weakref import ref
+
 from .types import Dataclass
 from .etypes import (
     AnnotatedType,
@@ -42,7 +44,8 @@ def get_etype_from_type(typ: Type) -> BaseType:
         return eany
 
     if is_dataclass(typ):
-        return DataclassType(typ.__name__, get_etypes_for_dc(typ))
+        rf = ref(typ)
+        return DataclassType(rf, get_etypes_for_dc(typ))
 
     origin = get_origin(typ)
     if origin is typing.Union or origin is std_types.UnionType:
