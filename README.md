@@ -1,6 +1,8 @@
 # exacting
 > *(adj.) making great demands on one's skill, attention, or other resources.*
 
+[**Docs**](https://aweirddev.github.io/exacting)
+
 `exacting` is a picky dataclass runtime utility collection, making sure all type annotations are followed.
 
 Essentially... **THE** go-to option for dataclasses. heh.
@@ -32,17 +34,6 @@ Person(name="John", age=1.23)
 # TypeError:
 # During validation of dataclass 'Person' at attribute 'age', a type error occurred:
 # (isinstance) Expected <class 'int'>, got: <class 'float'>
-```
-
-Also, you can type anything! Almost.
-
-```python
-@exact
-class Stuff:
-    apple: Optional[str]
-    banana: str | int | bool
-
-# ...they all work!
 ```
 
 ***
