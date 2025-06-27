@@ -1,13 +1,11 @@
 from typing import Any
 
-
 def json_to_py(json: str) -> Any:
     """Convert raw JSON to Python data types.
 
     Args:
         json (str): The JSON data.
     """
-
 
 def jsonc_to_py(json: str) -> Any:
     """Convert raw JSON to Python data bytes while allowing comments,
@@ -19,7 +17,6 @@ def jsonc_to_py(json: str) -> Any:
     Args:
         json (str): The JSONC data.
     """
-
 
 class Regex:
     def __init__(self, m: str): ...
@@ -33,10 +30,8 @@ class Regex:
             RuntimeError: Rust-side error.
         """
 
-
 def py_to_bytes(data: Any) -> bytes:
     """Convert Python data to bytes."""
-
 
 def bytes_to_py(data: bytes) -> Any:
     """Convert bytes to Python data."""
