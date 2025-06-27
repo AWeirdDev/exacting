@@ -3,7 +3,10 @@ from dataclasses import is_dataclass
 from typing import Any, Dict, List, Type, TypeVar
 from weakref import ReferenceType
 
-from .types import DataclassType, Result, indexable
+
+from .types import DataclassType, indexable
+from .result import Result
+from .utils import get_field_value, unsafe
 
 T = TypeVar("T")
 
@@ -76,7 +79,7 @@ class ListV(Validator):
             item_res = self.target.validate(item, **options)
             if not item_res.is_ok():
                 return item_res.trace(
-                    f"During validation of {self!r}, a validation error occurred:"
+                    f"During validation of {self!r} at item {idx}, a validation error occurred:"
                 )
 
             array[idx] = item_res.unwrap()
@@ -85,6 +88,14 @@ class ListV(Validator):
 
     def __repr__(self) -> str:
         return f"list[{self.target!r}]"
+
+
+class LooseListV(Validator):
+    def validate(self, value: Any, **options) -> "Result":
+        return expect(list, value)
+
+    def __repr__(self) -> str:
+        return "list[...]"
 
 
 class DictV(Validator):
@@ -125,6 +136,14 @@ class DictV(Validator):
 
     def __repr__(self) -> str:
         return f"dict[{self.key!r}, {self.value!r}]"
+
+
+class LooseDictV(Validator):
+    def validate(self, value: Any, **options) -> "Result":
+        return expect(dict, value)
+
+    def __repr__(self) -> str:
+        return "dict[...]"
 
 
 class UnionV(Validator):
@@ -184,7 +203,7 @@ class LiteralV(Validator):
         return Result.Err(f"Failed to validate on {self!r}: no eq match")
 
     def __repr__(self) -> str:
-        return f"Literal[{', '.join(self.values)}]"
+        return f"Literal[{', '.join(repr(v) for v in self.values)}]"
 
 
 class AnnotatedV(Validator):
@@ -229,14 +248,19 @@ class DataclassV(Validator):
 
         for field in dc.__dataclass_fields__.values():
             name = field.name
-            field_res = self.targets[name].validate(data[name])
+            field_value = get_field_value(data.get(name), field)
+
+            field_res = self.targets[name].validate(field_value, **options)
             if not field_res.is_ok():
-                return field_res.trace(f"During validation of dataclass {self!r}, got:")
+                return field_res.trace(
+                    f"During validation of dataclass {self!r} at field {name!r}, got:"
+                )
 
             data[name] = field_res.unwrap()
 
         if options.get("from_dict"):
-            result = getattr(dc, "__unsafe_init__")(**data.as_dict())
+            with unsafe():
+                result = getattr(dc, "__unsafe_init__")(**data.as_dict())
         else:
             result = data.as_dc()
 
@@ -246,4 +270,4 @@ class DataclassV(Validator):
         dc = self.rf()
         if dc is None:
             raise RuntimeError("Weakref is gone")
-        return repr(dc)
+        return dc.__name__

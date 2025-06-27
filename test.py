@@ -1,10 +1,24 @@
-from dataclasses import dataclass
-from exacting.validator_map import get_dc_validator
+from typing import Annotated, Literal
+from exacting import Exact, unsafe
 
 
-@dataclass
-class Person:
+class Comment(Exact):
+    user: str
+    title: str
+    stars: int
+    body: str | None = None
+
+
+class Place(Exact):
     name: str
+    location: str
+    comments: list[Comment]
 
 
-print(get_dc_validator(Person).validate(Person(name="123")))
+with unsafe():
+    d = Place.__unsafe_init__(
+        name="McDonald's",
+        location="McDonald's Rd.",
+        comments=[Comment.__unsafe_init__(user="Waltuh", title="ITBOY", stars=2)],
+    ).exact_as_dict()
+print(Place.exact_from_dict(d))

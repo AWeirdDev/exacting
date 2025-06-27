@@ -1,7 +1,7 @@
 import dataclasses
 from dataclasses import is_dataclass
 from types import NoneType, UnionType
-from typing import Annotated, Any, Dict, Literal, Union, get_origin
+from typing import Annotated, Any, Dict, Literal, Union, get_origin, get_type_hints
 from weakref import ref
 
 from .validators import (
@@ -15,6 +15,8 @@ from .validators import (
     IntV,
     ListV,
     LiteralV,
+    LooseDictV,
+    LooseListV,
     NoneV,
     StrV,
     UnionV,
@@ -28,6 +30,8 @@ INTV = IntV()
 FLOATV = FloatV()
 BOOLV = BoolV()
 BYTESV = BytesV()
+LOOSE_LISTV = LooseListV()
+LOOSE_DICTV = LooseDictV()
 ANYV = AnyV()
 
 
@@ -44,6 +48,10 @@ def get_validator(typ: Any) -> Validator:
         return BOOLV
     if typ is bytes:
         return BYTESV
+    if typ is list:
+        return LOOSE_LISTV
+    if typ is dict:
+        return LOOSE_DICTV
     if typ is Any:
         return ANYV
 
@@ -76,6 +84,7 @@ def union(*items) -> Validator:
 def get_map_for_dc(dc: DataclassType) -> Dict[str, Validator]:
     vmap = {}
     _FIELD = getattr(dataclasses, "_FIELD")
+    type_hints = get_type_hints(dc)
 
     for field in dc.__dataclass_fields__.values():
         if getattr(field, "_field_type") is not _FIELD:
@@ -83,7 +92,7 @@ def get_map_for_dc(dc: DataclassType) -> Dict[str, Validator]:
                 "Currently, exacting only supports regular fields :(\n"
                 f"...at field {field.name!r}, dataclass {dc!r}"
             )
-        vmap[field.name] = get_validator(field.type)
+        vmap[field.name] = get_validator(type_hints[field.name])
 
     return vmap
 
