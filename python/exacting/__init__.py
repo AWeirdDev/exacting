@@ -1,4 +1,5 @@
 from .core import Exact, exact
+from .fields import field
 from .types import ValidationError
 from .validators import (
     AnnotatedV,
@@ -40,5 +41,6 @@ __all__ = [
     "StrV",
     "UnionV",
     "Validator",
-    "unsafe"
+    "unsafe",
+    "field"
 ]

@@ -10,7 +10,7 @@ from .types import DataclassType
 from .result import Result
 from .utils import get_field_value, unsafe_mode
 
-from .exacting import py_to_bytes
+from .exacting import bytes_to_py, json_to_py, jsonc_to_py, py_to_bytes
 
 
 def get_exact_init(dc: DataclassType):
@@ -88,7 +88,7 @@ class Exact(_Dc, _Internals):
         exact(cls)
 
     def exact_as_dict(self) -> Dict[str, Any]:
-        """Get this model instance as dictionary."""
+        """Get this model instance as a dictionary."""
         return asdict(self)
 
     def exact_as_json(self) -> str:
@@ -96,11 +96,43 @@ class Exact(_Dc, _Internals):
         return json.dumps(self.exact_as_dict())
 
     def exact_as_bytes(self) -> bytes:
-        """Get this model instance as bytes with `rkyv`."""
+        """Get this model instance as bytes with `rkyv`.
+
+        This may **not** be super efficient.
+        """
         return py_to_bytes(self.exact_as_dict())
 
     @classmethod
     def exact_from_dict(cls, d: Dict[str, Any]) -> Self:
+        """(exacting) Get this model from a raw dictionary."""
+        res = cls.__validator__.validate(d, from_dict=True)
+        res.raise_for_err()
+        return res.unwrap()
+
+    @classmethod
+    def exact_from_json(cls, raw: str, /, *, strict: bool = True) -> Self:
+        """(exacting) Get this model from raw JSON.
+
+        When strict mode is set to `False`, you could use JSON with comments
+        and more modern features.
+
+        Args:
+            raw (str): The raw JSON data.
+            strict (bool): Whether to turn strict mode on.
+        """
+        if strict:
+            d = json_to_py(raw)
+        else:
+            d = jsonc_to_py(raw)
+
+        res = cls.__validator__.validate(d, from_dict=True)
+        res.raise_for_err()
+        return res.unwrap()
+
+    @classmethod
+    def exact_from_bytes(cls, raw: bytes) -> Self:
+        """(exacting) Get this model from raw bytes."""
+        d = bytes_to_py(raw)
         res = cls.__validator__.validate(d, from_dict=True)
         res.raise_for_err()
         return res.unwrap()

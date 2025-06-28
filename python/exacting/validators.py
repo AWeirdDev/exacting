@@ -1,12 +1,12 @@
 from abc import ABC
-from dataclasses import is_dataclass
-from typing import Any, Dict, List, Type, TypeVar
+from dataclasses import MISSING, is_dataclass
+from typing import Any, Dict, List, Type, TypeVar, Union
 from weakref import ReferenceType
 
-
-from .types import DataclassType, indexable
+from .types import DataclassType, indexable, _Optional
 from .result import Result
 from .utils import get_field_value, unsafe
+from .exacting import Regex
 
 T = TypeVar("T")
 
@@ -256,7 +256,18 @@ class DataclassV(Validator):
                     f"During validation of dataclass {self!r} at field {name!r}, got:"
                 )
 
-            data[name] = field_res.unwrap()
+            field_value = field_res.unwrap()
+
+            ef = field.metadata.get("exact")
+            if ef:
+                validator_items: List[Validator] = ef.validators
+                for item in validator_items:
+                    fv_res = item.validate(field_value)
+                    if not fv_res.is_ok():
+                        return fv_res
+                    field_value = fv_res.unwrap()
+
+            data[name] = field_value
 
         if options.get("from_dict"):
             with unsafe():
@@ -271,3 +282,66 @@ class DataclassV(Validator):
         if dc is None:
             raise RuntimeError("Weakref is gone")
         return dc.__name__
+
+
+class RegexV(Validator):
+    regex: Regex
+    pattern: str
+
+    def __init__(self, pattern: str):
+        self.regex = Regex(pattern)
+        self.pattern = pattern
+
+    def validate(self, value: Any, **options) -> "Result":
+        res = expect(str, value)
+        if not res.is_ok():
+            return res
+
+        data = res.unwrap()
+        if not self.regex.validate(data):
+            return Result.Err(f"Regex validation {self.pattern!r} on str failed")
+
+        return Result.Ok(data)
+
+
+class MinMaxV(Validator):
+    minv: _Optional[Union[int, float]]
+    maxv: _Optional[Union[int, float]]
+
+    def __init__(
+        self,
+        minv: _Optional[Union[int, float]] = MISSING,
+        maxv: _Optional[Union[int, float]] = MISSING,
+    ):
+        self.minv = minv
+        self.maxv = maxv
+
+    def validate(self, value: Any, **options) -> "Result":
+        if hasattr(value, "__len__"):
+            ln = len(value)
+            if self.minv is not MISSING:
+                if ln < self.minv:
+                    return Result.Err(f"Expected min length of {self.minv}, got {ln}")
+            if self.maxv is not MISSING:
+                if ln > self.maxv:
+                    return Result.Err(f"Expected max length of {self.minv}, got {ln}")
+
+        elif hasattr(value, "__lt__") and hasattr(value, "__gt__"):
+            if self.minv is not MISSING:
+                if value < self.minv:
+                    return Result.Err(
+                        f"Expected min value of {self.minv}, got {value!r}"
+                    )
+
+            if self.maxv is not MISSING:
+                if value > self.maxv:
+                    return Result.Err(
+                        f"Expected max value of {self.minv}, got {value!r}"
+                    )
+
+        else:
+            return Result.Err(
+                f"Neither len(), >, or < can be tested for type {type(value)}"
+            )
+
+        return Result.Ok(value)

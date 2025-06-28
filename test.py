@@ -1,24 +1,16 @@
-from typing import Annotated, Literal
-from exacting import Exact, unsafe
+from exacting import Exact, field
+
+
+class Stuff(Exact):
+    cool: bool
 
 
 class Comment(Exact):
     user: str
-    title: str
-    stars: int
-    body: str | None = None
+    stars: int = field(minv=1, maxv=5)
+    stuff: Stuff
 
 
-class Place(Exact):
-    name: str
-    location: str
-    comments: list[Comment]
-
-
-with unsafe():
-    d = Place.__unsafe_init__(
-        name="McDonald's",
-        location="McDonald's Rd.",
-        comments=[Comment.__unsafe_init__(user="Waltuh", title="ITBOY", stars=2)],
-    ).exact_as_dict()
-print(Place.exact_from_dict(d))
+b = Comment(user="Waltuh", stars=3, stuff=Stuff(cool=True)).exact_as_bytes()
+print(b)
+print(Comment.exact_from_bytes(b))

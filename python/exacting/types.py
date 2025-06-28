@@ -1,6 +1,6 @@
 import dataclasses as std_dc
 
-from typing import Any, Dict, Protocol, Type, Union
+from typing import Any, Dict, Protocol, Type, TypeVar, Union
 
 
 class Dataclass(Protocol):
@@ -13,7 +13,7 @@ DataclassType = Union[Type[Dataclass], Any]
 class _Indexable:
     def __getitem__(self, k: str): ...
     def __setitem__(self, k: str, data: Any): ...
-    def get(self, k: str): ...
+    def get(self, k: str) -> Any: ...
     def as_dict(self) -> dict: ...
     def as_dc(self) -> Dataclass: ...
 
@@ -67,3 +67,7 @@ def indexable(item: Any) -> "_Indexable":
 
 class ValidationError(RuntimeError):
     """Validation error for `exacting`."""
+
+
+T = TypeVar("T")
+_Optional = Union[T, std_dc._MISSING_TYPE]
