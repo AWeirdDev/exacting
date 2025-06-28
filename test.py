@@ -1,16 +1,32 @@
-from exacting import Exact, field
+from exacting import Exact
 
 
-class Stuff(Exact):
-    cool: bool
+class Actor(Exact):
+    name: str
+    portrays: str
 
 
-class Comment(Exact):
-    user: str
-    stars: int = field(minv=1, maxv=5)
-    stuff: Stuff
+class Show(Exact):
+    name: str
+    description: str | None
+    actors: list[Actor]
 
+# (1) ✅ OK, exacting is happi
+Show(
+    name="Severance",
+    description="great show",
+    actors=[
+        Actor(name="Adam Scott", portrays="Mark S."),
+        Actor(name="Britt Lower", portrays="Helly R."),
+    ]
+)
 
-b = Comment(user="Waltuh", stars=3, stuff=Stuff(cool=True)).exact_as_bytes()
-print(b)
-print(Comment.exact_from_bytes(b))
+# (2) ❌ Nuh-uh, exacting is angri
+Show(
+    name=123,
+    description=False,
+    actors=[
+        "Walter White",
+        "Jesse Pinkman"
+    ]
+)

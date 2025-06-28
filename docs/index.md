@@ -102,5 +102,4 @@ Show(
 
 Normally, when you use the parameters passed in example (2) above, the Python `dataclasses` library might as well just go with it, because they only put the additional **static typing** to the model, but not at **runtime**. Exacting makes sure that at both times, types are all enforced. It even gives you a detailed error message on where this occurs! (In a cool way)
 
-It's worth noting that error generations are *lazy*, which means once Exacting finds out about a problem, it immediately raises a `TypeError` or `ValueError` (depending on the context) when we're at the high-level scale (say, a dataclass). This saves a lot of computation time if you have a larger model.
-
+It's worth noting that error generations are *lazy*, which means once Exacting finds out about a problem about a dataclass, it raises a `ValidationError`. This saves a lot of computation time if you have a larger model.
