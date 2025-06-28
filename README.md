@@ -105,4 +105,44 @@ Normally, when you use the parameters passed in example (2) above, the Python `d
 
 It's worth noting that error generations are *lazy*, which means once Exacting finds out about a problem about a dataclass, it raises a `ValidationError`. This saves a lot of computation time if you have a larger model.
 
+![praise pydantic](https://github.com/user-attachments/assets/c322bff2-2624-479d-9967-7184580b36c1)
+
+Yeah, we also got fields! Use it like how you'd expect it. Quite literally, lol.
+
+```python
+from exacting import Exact, field
+
+
+def create_ai_slop():
+    return "tick tock"
+
+class Comment(Exact):
+    user: str = field(regex="^@.+$")
+    stars: int = field(minv=1, maxv=5)
+    body: str = field(default_factory=create_ai_slop)
+
+# ✅ OK, exacting is HYPED
+Comment(
+    user="@waltuh",
+    stars=5
+)
+
+# ❌ Hell nawh, exacting holdin' you at gunpoint
+Comment(
+    user="ooga booga",  # Regex validation '^@.+$' on str failed
+    stars=-1,  # Expected min value of 1, got -1
+    body=None  # Expected type <class 'str'>, got <class 'NoneType'>
+)
+```
+
+Woah! That's a lot of code to process. To put it simply, exacting supports:
+
+- **Regex** validation on `str`
+- **Min/max** validation on value (e.g., `int`, `float`) or length (e.g., `str`, `list`)
+- **Default** values or factory! Y'know, the old `dataclasses` way, mmmMMM
+- This is extra, but **custom** validation! You can make your own if you like
+
+![praise pydantic, exactign sucks](https://github.com/user-attachments/assets/5969c54a-14d0-4023-9f80-b89ae9ea8374)
+
+Kind of, but somehow native performance is way better than Rust. Take a look at this.
 

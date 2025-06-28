@@ -84,6 +84,8 @@ class _Dc: ...
 
 
 class Exact(_Dc, _Internals):
+    """Represents a dataclass with runtime type checks."""
+
     def __init_subclass__(cls) -> None:
         exact(cls)
 

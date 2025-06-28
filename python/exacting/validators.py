@@ -264,7 +264,9 @@ class DataclassV(Validator):
                 for item in validator_items:
                     fv_res = item.validate(field_value)
                     if not fv_res.is_ok():
-                        return fv_res
+                        return fv_res.trace(
+                            f"During validation of dataclass {self!r} at field {name!r}, got:"
+                        )
                     field_value = fv_res.unwrap()
 
             data[name] = field_value
