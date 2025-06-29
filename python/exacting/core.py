@@ -1,7 +1,7 @@
 import json
 from dataclasses import MISSING, asdict, dataclass
 
-from typing import Any, Dict, Type
+from typing import TYPE_CHECKING, Any, Dict, Type
 from typing_extensions import Self, dataclass_transform
 
 from .validators import DataclassV, Validator
@@ -21,7 +21,7 @@ def get_exact_init(dc: DataclassType):
             value = get_field_value(kwargs.get(field.name, MISSING), field)
             setattr(self, field.name, value)
 
-        validator: Validator = getattr(dc, "__validator__")
+        validator: Validator = self.__validator__
         res: Result = validator.validate(self)
         res.raise_for_err()
 
@@ -60,34 +60,44 @@ def exact(cls: Type) -> DataclassType:
     return dc
 
 
-class _Internals:
-    __validator__: DataclassV
+if TYPE_CHECKING:
 
-    @classmethod
-    def __unsafe_init__(cls, **kwargs) -> Self:
-        """Unsafely initialize the dataclass with no-brain filling.
+    class _Internals:
+        __validator__: DataclassV
 
-        Example:
+        @classmethod
+        def __unsafe_init__(cls, **kwargs) -> Self:
+            """Unsafely initialize the dataclass with no-brain filling.
 
-        ```python
-        from exacting import unsafe
+            Example:
 
-        with unsafe():
-            SomeDataclass.__unsafe_init__(**kwargs)
-        ```
-        """
-        raise NotImplementedError()
+            ```python
+            from exacting import unsafe
 
+            with unsafe():
+                SomeDataclass.__unsafe_init__(**kwargs)
+            ```
+            """
+            raise NotImplementedError()
 
-@dataclass_transform(kw_only_default=True)
-class _Dc: ...
+    @dataclass_transform(kw_only_default=True)
+    class _Dc: ...
+
+else:
+
+    class _Dc: ...
+
+    class _Internals: ...
 
 
 class Exact(_Dc, _Internals):
     """Represents a dataclass with runtime type checks."""
 
-    def __init_subclass__(cls) -> None:
-        exact(cls)
+    def __init__(self, **kwargs):
+        get_exact_init(self)(self, **kwargs)
+
+    def __init_subclass__(cls):
+        dataclass(cls)
 
     def exact_as_dict(self) -> Dict[str, Any]:
         """Get this model instance as a dictionary."""

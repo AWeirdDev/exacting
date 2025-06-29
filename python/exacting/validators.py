@@ -260,7 +260,8 @@ class DataclassV(Validator):
 
             ef = field.metadata.get("exact")
             if ef:
-                validator_items: List[Validator] = ef.validators
+                # validator_items: List[Validator]
+                validator_items = ef.validators
                 for item in validator_items:
                     fv_res = item.validate(field_value)
                     if not fv_res.is_ok():

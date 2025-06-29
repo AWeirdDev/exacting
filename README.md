@@ -9,7 +9,7 @@ Essentially... **THE** go-to option for dataclasses. heh.
 **🔑 Key features**:
 
 - **100% static typing.** Because I hate nothing too.
-- Up to **10x faster** than [`pydantic`](https://pydantic.dev)! (Them: 60ms, us: 6~9ms)
+- Generally **faster** than [`pydantic`](https://pydantic.dev)!
 
 ![i aint lying about static typing](https://github.com/user-attachments/assets/875517ff-5dd5-4b63-98fa-e1218ff00627)
 
@@ -144,5 +144,6 @@ Woah! That's a lot of code to process. To put it simply, exacting supports:
 
 ![praise pydantic, exactign sucks](https://github.com/user-attachments/assets/5969c54a-14d0-4023-9f80-b89ae9ea8374)
 
-Kind of, but somehow native performance is way better than Rust. Take a look at this.
+Kind of, but somehow native performance is way better than Rust. That is, exacting is *generally* faster than Pydantic on a few benchmarks. Woooosh
 
+Anyway, thanks for hopping onto this quick tour, you can [read the docs](https://aweirddev.github.io/exacting) if you'd like.

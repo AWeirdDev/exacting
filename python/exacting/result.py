@@ -6,7 +6,7 @@ from .types import ValidationError
 T = TypeVar("T")
 
 
-def build_error(errors: deque[str]) -> str:
+def build_error(errors: "deque[str]") -> str:
     text = "\n"
     indent_level = 0
 
