@@ -9,7 +9,7 @@ Essentially... **THE** go-to option for dataclasses. heh.
 **🔑 Key features**:
 
 - **100% static typing.** Because I hate nothing too.
-- Up to **10x faster** than [`pydantic`](https://pydantic.dev)! (Them: 60ms, us: 6~9ms)
+- Generally **faster** than [`pydantic`](https://pydantic.dev)!
 
 ![static typing](static-typing-proof.png)
 
@@ -95,11 +95,12 @@ Show(
 ??? failure "TypeError: Error while validating…"
 
     ``` python
-    TypeError: 
-    Error while validating dataclass 'Show' at attribute 'name':
-    (isinstance) Expected <class 'str'>, got: <class 'int'>
+    ValidationError:
+    During validation of dataclass Show at field 'name', got:
+      • Expected type <class 'str'>, got <class 'int'>
     ```
 
 Normally, when you use the parameters passed in example (2) above, the Python `dataclasses` library might as well just go with it, because they only put the additional **static typing** to the model, but not at **runtime**. Exacting makes sure that at both times, types are all enforced. It even gives you a detailed error message on where this occurs! (In a cool way)
 
 It's worth noting that error generations are *lazy*, which means once Exacting finds out about a problem about a dataclass, it raises a `ValidationError`. This saves a lot of computation time if you have a larger model.
+

@@ -87,14 +87,13 @@ else:
 
     class _Dc: ...
 
-    class _Internals: ...
+    class _Internals:
+        def __init__(self, **kwargs):
+            get_exact_init(self)(self, **kwargs)
 
 
 class Exact(_Dc, _Internals):
     """Represents a dataclass with runtime type checks."""
-
-    def __init__(self, **kwargs):
-        get_exact_init(self)(self, **kwargs)
 
     def __init_subclass__(cls):
         dataclass(cls)

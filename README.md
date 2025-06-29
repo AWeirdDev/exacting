@@ -2,6 +2,8 @@
 
 > *(adj.) making great demands on one's skill, attention, or other resources.*
 
+✅ [**Docs**](https://aweirddev.github.io/exacting) and [**PyPi**](https://pypi.org/project/exacting)
+
 `exacting` is a picky dataclass runtime utility collection, making sure all type annotations are followed.
 
 Essentially... **THE** go-to option for dataclasses. heh.
@@ -146,4 +148,4 @@ Woah! That's a lot of code to process. To put it simply, exacting supports:
 
 Kind of, but somehow native performance is way better than Rust. That is, exacting is *generally* faster than Pydantic on a few benchmarks. Woooosh
 
-Anyway, thanks for hopping onto this quick tour, you can [read the docs](https://aweirddev.github.io/exacting) if you'd like.
+Anyway, thanks for sticking with us, you can [read the docs](https://aweirddev.github.io/exacting) if you'd like.
