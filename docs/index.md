@@ -92,7 +92,7 @@ Show(
 )
 ```
 
-??? failure "TypeError: Error while validating…"
+??? failure "ValidationError: During validation of…"
 
     ``` python
     ValidationError:

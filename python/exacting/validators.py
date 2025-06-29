@@ -250,7 +250,10 @@ class DataclassV(Validator):
             name = field.name
             field_value = get_field_value(data.get(name), field)
 
-            field_res = self.targets[name].validate(field_value, **options)
+            validator = self.targets[name]
+            if isinstance(validator, DataclassV):
+                continue
+            field_res = validator.validate(field_value, **options)
             if not field_res.is_ok():
                 return field_res.trace(
                     f"During validation of dataclass {self!r} at field {name!r}, got:"

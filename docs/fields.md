@@ -48,34 +48,12 @@ Hamburger(name="WHOPPER")
 Hamburger(name="bigmac")
 ```
 
-
-??? failure "TypeError: Error while validating…"
-
-    ```
-    TypeError: 
-    Error while validating dataclass 'Hamburger' at attribute 'name' (field validator):
-    Failed to validate Regex on str (doesn't match)
-    ```
-
 Note that the `regex` parameter won't work (skipped) if used on field types that aren't `str`.
 
 ## Aliases
 
 Aliases are only used when serializing/deserializing.
 
-```python
-from exacting import Exact, field
+!!! warning
 
-class Person(Exact):
-    name: str
-    description: str = field(alias="desc")
-
-# serializing
-person = Person(name="Me", description="broke af")
-data = person.exact_as_json()
-print(data)  # {"name": "Me", "desc": "broke af"}
-
-# deserializing
-person2 = Person.exact_from_json(data)
-print(person2)  # Person(name='Me', description='broke af')
-```
+    We're still working on it... stay tuned, I guess.

@@ -1,25 +1,13 @@
 from exacting import Exact
 
 
-class Actor(Exact):
+class Id(Exact):
+    n: int
+
+
+class Person(Exact):
     name: str
-    portrays: str
+    id: Id
 
 
-class Show(Exact):
-    name: str
-    description: str | None
-    actors: list[Actor]
-
-
-# (1) ✅ OK, exacting is happi
-Show(
-    name="Severance",
-    description="great show",
-    actors=[
-        Actor(name="Adam Scott", portrays="Mark S."),
-        Actor(name="Britt Lower", portrays="Helly R."),
-    ],
-)
-
-# (2) ❌ Nuh-uh, exacting is angri
+Person(name="asdf", id=Id(n=123))

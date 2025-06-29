@@ -18,7 +18,10 @@ from .validators import (
     StrV,
     UnionV,
     Validator,
+    expect,
 )
+from .validator_map import union
+from .result import Result
 from .utils import unsafe
 
 __all__ = [
@@ -42,5 +45,8 @@ __all__ = [
     "UnionV",
     "Validator",
     "unsafe",
-    "field"
+    "field",
+    "union",
+    "Result",
+    "expect",
 ]

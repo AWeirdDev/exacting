@@ -6,12 +6,16 @@ nav:
     - index.md
     - fields.md
     - dumping.md
-  - Type reference:
-    - type-reference/native.md
-    - type-reference/union.md
-    - type-reference/any.md
-    - type-reference/literal.md
-    - type-reference/annotated.md
+  - Validators:
+    - validators/custom.md
+    - validators/native.md
+    - validators/union.md
+    - validators/any.md
+    - validators/literal.md
+    - validators/annotated.md
+  - Internals:
+    - internals/result.md
+    - internals/unsafe.md
 theme:
   name: material
   icon:

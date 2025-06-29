@@ -50,12 +50,12 @@ def get_unsafe_init():
 
 @dataclass_transform(kw_only_default=True)
 def exact(cls: Type) -> DataclassType:
-    dc = dataclass(kw_only=True)(cls)
+    dc = dataclass(kw_only=True, init=False)(cls)
     unsafe_init = get_unsafe_init()
     setattr(dc, "__unsafe_init__", unsafe_init)
 
     exact_init = get_exact_init(dc)
-    setattr(dc, "__init__", exact_init)
+    setattr(dc, "__exact_init__", exact_init)
 
     return dc
 
@@ -89,14 +89,22 @@ else:
 
     class _Internals:
         def __init__(self, **kwargs):
-            get_exact_init(self)(self, **kwargs)
+            self.__exact_init__(**kwargs)
 
 
 class Exact(_Dc, _Internals):
     """Represents a dataclass with runtime type checks."""
 
     def __init_subclass__(cls):
-        dataclass(cls)
+        exact(cls)
+
+    def __getitem__(self, k: str) -> Any:
+        return getattr(self, k)
+
+    def __setitem__(self, k: str, item: Any):
+        res = self.__validator__.targets[k].validate(item)
+        res.raise_for_err()
+        setattr(self, k, item)
 
     def exact_as_dict(self) -> Dict[str, Any]:
         """Get this model instance as a dictionary."""

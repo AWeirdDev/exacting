@@ -37,6 +37,10 @@ print(data)  # Money(swag=True)
 
 Exacting uses [rkyv](https://docs.rs/rkyv/latest/rkyv/) for serialization/deserialization.
 
+!!! warning "Lazy developer warning"
+    
+    This thingy is experimental. It's not yet ready for production, y'know.
+
 ```python
 from exacting import Exact
 
